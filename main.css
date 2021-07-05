@@ -1,12 +1,19 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap");
 
-textarea, input, #repl-output {
-  font-family: 'Source Code Pro', monospace;
+body {
+  overflow: hidden;
+}
+
+textarea,
+input,
+#repl-output {
+  font-family: "Source Code Pro", monospace;
   resize: none;
   white-space: nowrap;
   overflow: auto;
 }
 
-body {
-  overflow: hidden;
+#repl-output {
+  padding-left: 3px;
+  padding-right: 3px;
 }

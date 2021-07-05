@@ -1,4 +1,4 @@
-import * as ast from "./lang/ast.js";
+import * as ast from "./lang.js";
 import { sanitize } from "./util.js";
 
 /** @type {HTMLElement} */
@@ -35,24 +35,41 @@ function resizeHandler(_ev) {
 window.addEventListener("resize", resizeHandler);
 resizeHandler();
 
-document.getElementById("repl-input")?.addEventListener("keypress", (ev) => {
+/** @type {string[]} */
+const inputHistory = [];
+document.getElementById("repl-input")?.addEventListener("keydown", (ev) => {
   if (ev.key === "Enter") {
+    inputHistory.push(replInput.value);
     replOutput.innerHTML += `<span>&gt; ${sanitize(
       replInput.value
     )}</span><br/>`;
+
     try {
       const parsed = ast.parse(replInput.value);
 
       replOutput.innerHTML += `<span>&lt; ${sanitize(
-        parsed.toString()
+        parsed.evaluate(new Map()).toString()
       )}</span><br/>`;
       replOutput.scrollTop = replOutput.scrollHeight;
       replInput.value = "";
     } catch (e) {
+      let stringified;
+      if (!(e instanceof Error)) {
+        stringified = `Unexpected exception type: ${e}`;
+      } else if (e instanceof ast.ParseError) {
+        stringified = `${e}`;
+      } else {
+        stringified = `Internal error: ${e}`;
+      }
+
       replOutput.innerHTML += `<span class="text-danger">${sanitize(
-        e.toString()
+        stringified
       )}</span><br/>`;
       replOutput.scrollTop = replOutput.scrollHeight;
     }
+  } else if (ev.key === "ArrowUp") {
+    replInput.value = inputHistory.pop() || "";
+  } else {
+    console.log(ev.key);
   }
 });
