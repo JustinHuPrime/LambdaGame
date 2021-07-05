@@ -138,6 +138,16 @@ function getBuiltins(level) {
 }
 
 /**
+ * @param {number} index
+ * @returns {HTMLElement}
+ */
+function getOutputCell(index) {
+  let maybeOutputCell = document.getElementById(`test-${index}`);
+  if (maybeOutputCell === null) throw new Error("test output not found");
+  else return maybeOutputCell;
+}
+
+/**
  * @param {number} [_time]
  */
 function solutionRunner(_time) {
@@ -150,12 +160,7 @@ function solutionRunner(_time) {
     let ok = true;
     LEVELS[level].tests.forEach((test, index, _array) => {
       if (solution !== null) {
-        const outputCell = (() => {
-          let maybeOutputCell = document.getElementById(`test-${index}`);
-          if (maybeOutputCell === null)
-            throw new Error("test output not found");
-          else return maybeOutputCell;
-        })();
+        const outputCell = getOutputCell(index);
         try {
           /** @type {lang.Closure} */
           const actual = test.inputs.reduce((fn, arg, _index, _array) => {
@@ -193,6 +198,9 @@ function solutionRunner(_time) {
     solutionOutput.innerHTML = `<span class="text-danger">${sanitize(
       stringifyError(e)
     )}</span>`;
+    LEVELS[level].tests.forEach((_test, index, _array) => {
+      getOutputCell(index).innerHTML = "";
+    });
 
     next.setAttribute("disabled", "true");
   }
