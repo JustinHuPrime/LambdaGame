@@ -6,14 +6,23 @@ body {
 
 textarea,
 input,
-#repl-output {
+#repl-output,
+#solution-output {
   font-family: "Source Code Pro", monospace;
   resize: none;
   white-space: nowrap;
   overflow: auto;
 }
+#test-table td {
+  font-family: "Source Code Pro", monospace;
+}
 
 #repl-output {
   padding-left: 3px;
   padding-right: 3px;
+}
+
+#repl,
+#level {
+  border: 1px solid black;
 }

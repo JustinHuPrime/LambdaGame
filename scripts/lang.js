@@ -9,10 +9,56 @@ export class Closure {
   }
 
   /**
+   * @param {string[]} [envExclusions = []]
+   * @returns {Closure}
+   */
+  reduce(envExclusions = []) {
+    const reductionEnv = new Map(this.env);
+    envExclusions.forEach((key, _index, _array) => reductionEnv.delete(key));
+    return new Closure(new Map(), this.lambda.reduce(reductionEnv));
+  }
+
+  /**
+   * @param {string[]} [envExclusions = []]
    * @returns {string}
    */
-  toString() {
-    return this.lambda.toString();
+  toString(envExclusions = []) {
+    return (
+      Array.from(this.env.keys())
+        .filter((key, _index, _array) => {
+          return envExclusions.indexOf(key) === -1;
+        })
+        .sort()
+        .reduce((rsf, key, _index, _array) => {
+          return (
+            rsf + `${key}: ${this.env.get(key)?.toString(envExclusions)}\n`
+          );
+        }, "") + this.lambda.toString()
+    );
+  }
+
+  /**
+   * @param {Closure} other
+   * @returns {boolean}
+   */
+  equals(other) {
+    for (const key of this.env.keys()) {
+      const ours = this.env.get(key);
+      const theirs = other.env.get(key);
+      if (ours === undefined || theirs === undefined || !ours.equals(theirs)) {
+        return false;
+      }
+    }
+
+    for (const key of other.env.keys()) {
+      const ours = this.env.get(key);
+      const theirs = other.env.get(key);
+      if (ours === undefined || theirs === undefined || !ours.equals(theirs)) {
+        return false;
+      }
+    }
+
+    return this.lambda.equals(other.lambda);
   }
 }
 
@@ -40,6 +86,16 @@ export class ASTNode {
   }
 
   /**
+   * @param {Map<string, Closure>} env
+   * @returns {ASTNode}
+   */
+  reduce(env) {
+    throw new Error(
+      `attempted to call 'reduce' on abstract class ${this.constructor.name}`
+    );
+  }
+
+  /**
    * @returns {string}
    */
   toString() {
@@ -47,9 +103,19 @@ export class ASTNode {
       `attempted to call 'toString' on abstract class ${this.constructor.name}`
     );
   }
+
+  /**
+   * @param {ASTNode} other
+   * @returns {boolean}
+   */
+  equals(other) {
+    throw new Error(
+      `attempted to call 'equals' on abstract class ${this.constructor.name}`
+    );
+  }
 }
 
-export class IdNode extends ASTNode {
+export class IDNode extends ASTNode {
   /**
    * @param {string} id
    */
@@ -74,16 +140,32 @@ export class IdNode extends ASTNode {
   }
 
   /**
+   * @param {Map<string, Closure>} env
+   * @returns {ASTNode}
+   */
+  reduce(env) {
+    return env.get(this.id)?.lambda.reduce(env) ?? new IDNode(this.id);
+  }
+
+  /**
    * @returns {string}
    */
   toString() {
     return this.id;
   }
+
+  /**
+   * @param {ASTNode} other
+   * @returns {boolean}
+   */
+  equals(other) {
+    return other instanceof IDNode && this.id === other.id;
+  }
 }
 
 export class LambdaNode extends ASTNode {
   /**
-   * @param {IdNode} arg
+   * @param {IDNode} arg
    * @param {ASTNode} body
    */
   constructor(arg, body) {
@@ -104,10 +186,32 @@ export class LambdaNode extends ASTNode {
   }
 
   /**
+   * @param {Map<string, Closure>} env
+   * @returns {LambdaNode}
+   */
+  reduce(env) {
+    const newEnv = new Map(env);
+    newEnv.delete(this.arg);
+    return new LambdaNode(new IDNode(this.arg), this.body.reduce(newEnv));
+  }
+
+  /**
    * @returns {string}
    */
   toString() {
     return `(\\${this.arg}.${this.body})`;
+  }
+
+  /**
+   * @param {ASTNode} other
+   * @returns {boolean}
+   */
+  equals(other) {
+    return (
+      other instanceof LambdaNode &&
+      this.arg === other.arg &&
+      this.body.equals(other.body)
+    );
   }
 }
 
@@ -136,10 +240,30 @@ export class ApplicationNode extends ASTNode {
   }
 
   /**
+   * @param {Map<string, Closure>} env
+   * @returns {ApplicationNode}
+   */
+  reduce(env) {
+    return new ApplicationNode(this.fn.reduce(env), this.arg.reduce(env));
+  }
+
+  /**
    * @returns {string}
    */
   toString() {
     return `(${this.fn} ${this.arg})`;
+  }
+
+  /**
+   * @param {ASTNode} other
+   * @returns {boolean}
+   */
+  equals(other) {
+    return (
+      other instanceof ApplicationNode &&
+      this.fn.equals(other.fn) &&
+      this.arg.equals(other.arg)
+    );
   }
 }
 
@@ -204,7 +328,7 @@ export class ParseError extends Error {
 
 /**
  * @param {string[]} tokens
- * @returns {IdNode}
+ * @returns {IDNode}
  */
 function parseId(tokens) {
   const token = tokens.shift();
@@ -219,7 +343,7 @@ function parseId(tokens) {
       throw new ParseError(`expected identifier, got end-of-input`);
     }
     default: {
-      return new IdNode(token);
+      return new IDNode(token);
     }
   }
 }
@@ -231,7 +355,11 @@ function parseId(tokens) {
 function expect(tokens, punctuation) {
   const token = tokens.shift();
   if (token !== punctuation) {
-    throw new ParseError(`expected '${punctuation}', got '${token}'`);
+    if (token === undefined) {
+      throw new ParseError(`expected '${punctuation}', got end-of-input`);
+    } else {
+      throw new ParseError(`expected '${punctuation}', got '${token}'`);
+    }
   }
 }
 
@@ -275,15 +403,15 @@ function parseExpression(tokens) {
     }
     case "\\":
     case ")":
-    case ".":
+    case ".": {
+      throw new ParseError(`expected identifier or '(', got '${token}'`);
+    }
     case undefined: {
-      throw new ParseError(
-        `expected identifier or '(', got '${token ?? "end-of-input"}'`
-      );
+      throw new ParseError(`expected identifier or '(', got end-of-input`);
     }
     default: {
       // id node
-      return new IdNode(token);
+      return new IDNode(token);
     }
   }
 }
@@ -293,5 +421,18 @@ function parseExpression(tokens) {
  * @returns {ASTNode}
  */
 export function parse(input) {
-  return parseExpression(tokenize(input));
+  const tokens = tokenize(input);
+  const retval = parseExpression(tokens);
+  if (tokens.length !== 0)
+    throw new ParseError(`expected end-of-input, got '${tokens[0]}'`);
+  return retval;
+}
+
+/**
+ * @param {string} input
+ * @param {Map<string, Closure>} [env = new Map()]
+ * @returns {Closure}
+ */
+export function evaluate(input, env = new Map()) {
+  return parse(input).evaluate(env);
 }
