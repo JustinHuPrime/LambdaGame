@@ -1,5 +1,7 @@
-import * as ast from "./lang.js";
+import * as lang from "./lang.js";
 import { sanitize } from "./util.js";
+
+// find elements
 
 /** @type {HTMLElement} */
 const replOutput = (() => {
@@ -24,6 +26,8 @@ const replInput = (() => {
   else return maybeReplInput;
 })();
 
+// repl resizing
+
 /**
  * @param {UIEvent} [_ev]
  */
@@ -35,28 +39,36 @@ function resizeHandler(_ev) {
 window.addEventListener("resize", resizeHandler);
 resizeHandler();
 
+// game
+
+// repl
+
 /** @type {string[]} */
-const inputHistory = [];
+const history = [];
+/** @type {number} */
+let historyPointer = history.length;
 document.getElementById("repl-input")?.addEventListener("keydown", (ev) => {
   if (ev.key === "Enter") {
-    inputHistory.push(replInput.value);
     replOutput.innerHTML += `<span>&gt; ${sanitize(
       replInput.value
     )}</span><br/>`;
 
+    history.push(replInput.value);
+    historyPointer = history.length;
+
     try {
-      const parsed = ast.parse(replInput.value);
+      const parsed = lang.parse(replInput.value);
+      replInput.value = "";
 
       replOutput.innerHTML += `<span>&lt; ${sanitize(
         parsed.evaluate(new Map()).toString()
       )}</span><br/>`;
       replOutput.scrollTop = replOutput.scrollHeight;
-      replInput.value = "";
     } catch (e) {
       let stringified;
       if (!(e instanceof Error)) {
         stringified = `Unexpected exception type: ${e}`;
-      } else if (e instanceof ast.ParseError) {
+      } else if (e instanceof lang.ParseError || e instanceof lang.EvalError) {
         stringified = `${e}`;
       } else {
         stringified = `Internal error: ${e}`;
@@ -68,8 +80,12 @@ document.getElementById("repl-input")?.addEventListener("keydown", (ev) => {
       replOutput.scrollTop = replOutput.scrollHeight;
     }
   } else if (ev.key === "ArrowUp") {
-    replInput.value = inputHistory.pop() || "";
-  } else {
-    console.log(ev.key);
+    if (historyPointer > 0) {
+      replInput.value = history[--historyPointer];
+    }
+  } else if (ev.key === "ArrowDown") {
+    if (historyPointer <= history.length) {
+      replInput.value = history[++historyPointer] || "";
+    }
   }
 });
