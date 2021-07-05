@@ -52,7 +52,9 @@ function parseLambda(input) {
 let LEVELS = [
   new Level(
     "Identity, please?",
-    "In the code window (on the left), write the identity function.",
+    "In the code window (on the left), write the <code>identity</code> function.<br/>" +
+      "The <code>identity</code> function takes one argument and produces it.<br/>" +
+      '<a href="./help.html" target="_blank">Need help? Click here for syntax documentation.</a>',
     [
       {
         inputs: ["(\\x.x)"],
@@ -68,7 +70,8 @@ let LEVELS = [
   ),
   new Level(
     "Level zero",
-    "Write the function corresponding to the Church numeral zero.",
+    'Write the function corresponding to the <a href="https://en.wikipedia.org/wiki/Church_encoding#Church_numerals" target="_blank">Church numeral</a> zero.<br/>' +
+      "The <code>zero</code> function is a curried function taking two arguments, and it returns the second argument.",
     [
       {
         inputs: ["(\\x.x)", "(\\y.y)"],
@@ -80,11 +83,16 @@ let LEVELS = [
   ),
   new Level(
     "Level <code>n + 1</code>",
-    "Write the function corresponding to the function <code>add1</code>",
+    "Write the function corresponding to the function <code>add1</code><br/>" +
+      "The <code>add1</code> function is a function taking one argument, a Church numeral, and it produces the successor of that numeral.",
     [
       {
         inputs: ["zero"],
         output: "((\\n.(\\f.(\\x.(f ((n f) x))))) zero)",
+      },
+      {
+        inputs: ["((\\n.(\\f.(\\x.(f ((n f) x))))) zero)"],
+        output: "((\\n.(\\f.(\\x.(f (f ((n f) x)))))) zero)",
       },
     ],
     ["identity", "zero"],

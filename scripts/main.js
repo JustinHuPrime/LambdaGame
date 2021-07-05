@@ -110,6 +110,13 @@ const saveSolution = (() => {
   else return maybeSaveSolution;
 })();
 
+/** @type {HTMLElement} */
+const builtins = (() => {
+  const maybeBuiltins = document.getElementById("builtins");
+  if (maybeBuiltins === null) throw new Error("builtins not found");
+  else return maybeBuiltins;
+})();
+
 // repl resizing
 
 /**
@@ -262,6 +269,15 @@ function gotoLevel(level_) {
     )}</td><td id="test-${index}"></td></tr>`;
   });
 
+  builtins.innerHTML =
+    LEVELS[level].availableBuiltins.length === 0
+      ? "none"
+      : LEVELS[level].availableBuiltins
+          .map((value, _index, _array) => {
+            return `<code>${sanitize(value)}</code>`;
+          })
+          .join(", ");
+
   code.value = solutions.get(LEVELS[level].builtinName)?.text ?? "";
   saved = true;
 
@@ -274,8 +290,6 @@ function gotoLevel(level_) {
   solutionRunner();
   code.focus();
 }
-
-gotoLevel(0);
 
 back.addEventListener("click", () => {
   if (!saved) {
@@ -365,3 +379,6 @@ document.getElementById("repl-input")?.addEventListener("keydown", (ev) => {
     }
   }
 });
+
+// start game
+gotoLevel(0);
