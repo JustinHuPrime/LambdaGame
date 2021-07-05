@@ -222,15 +222,13 @@ function gotoLevel(level_) {
   testTable.innerHTML = "";
   LEVELS[level].tests.forEach((test, index, _array) => {
     testTable.innerHTML += `<tr><td>${sanitize(
-      DEBUG(
-        test.inputs
-          .map((input, _index, _array) => {
-            return lang
-              .evaluate(input, getBuiltins(level))
-              .toString(LEVELS[level].availableBuiltins);
-          })
-          .join(",\n")
-      )
+      test.inputs
+        .map((input, _index, _array) => {
+          return lang
+            .evaluate(input, getBuiltins(level))
+            .toString(LEVELS[level].availableBuiltins);
+        })
+        .join(",\n")
     )}</td><td>${sanitize(
       lang
         .evaluate(test.output, getBuiltins(level))

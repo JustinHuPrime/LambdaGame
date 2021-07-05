@@ -10,31 +10,12 @@ export class Closure {
 
   /**
    * @param {string[]} [envExclusions = []]
-   * @returns {Closure}
-   */
-  reduce(envExclusions = []) {
-    const reductionEnv = new Map(this.env);
-    envExclusions.forEach((key, _index, _array) => reductionEnv.delete(key));
-    return new Closure(new Map(), this.lambda.reduce(reductionEnv));
-  }
-
-  /**
-   * @param {string[]} [envExclusions = []]
    * @returns {string}
    */
   toString(envExclusions = []) {
-    return (
-      Array.from(this.env.keys())
-        .filter((key, _index, _array) => {
-          return envExclusions.indexOf(key) === -1;
-        })
-        .sort()
-        .reduce((rsf, key, _index, _array) => {
-          return (
-            rsf + `${key}: ${this.env.get(key)?.toString(envExclusions)}\n`
-          );
-        }, "") + this.lambda.toString()
-    );
+    const reductionEnv = new Map(this.env);
+    envExclusions.forEach((key, _index, _array) => reductionEnv.delete(key));
+    return this.lambda.reduce(reductionEnv).toString();
   }
 
   /**
